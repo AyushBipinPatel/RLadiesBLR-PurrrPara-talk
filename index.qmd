@@ -1,0 +1,527 @@
+---
+title: "Parameterised Reports With RMarkdown and Purrr"
+author: "Ayush Patel"
+date: "28-Aug-2022"
+institute: "At the RLadies Bangalore Meetup"
+execute: 
+  echo: false
+format: 
+  revealjs:
+    height: 850
+    width: 1300
+    self-contained: true
+    theme: [default, custom.scss]
+---
+
+
+<img src="https://education.rstudio.com/trainers/people/patel+ayush/avatar_hu0bdfcd358ac5abaddab56d6161f13a18_36982_250x250_fill_q90_lanczos_center.jpg" itemprop="image" alt="Avatar" class = "center" style="border-radius:50%">
+
+::::{.columns}
+
+:::{.column width="50%"}
+
+### About Me
+
+  + I  am an economist working at the intersection of data, public policy, and development.
+  + I am also a Rstudio(Posit) Certified Tidyverse Instructor.
+
+:::
+
+
+:::{.column width="50%"}
+
+### Reach Me 
+
+{{< fa brands twitter >}}[@ayushbipinpatel](https://twitter.com/ayushbipinpatel)<br>
+{{< fa solid envelope >}}[ayush.ap58@gmail.com]{.pink}<br>
+{{< fa brands github >}}[@AyushBipinPatel](https://github.com/AyushBipinPatel)
+
+:::
+
+::::
+
+
+---
+
+
+## Pre-requisite (This is all you need.)
+
+<br>
+1. Basics of Rmarkdown
+
+  + Adding and executing code chunks
+  + Basic Markdown Syntax (Bold, Headings, etc ...)
+  + Kniting a document
+
+_Advanvced RMarkdown_ [knowledge is not required]{.pink}
+
+. . .
+
+2. Fundamentals of Data Wrangling
+
+Can you anticipate the output to this code
+
+```{r pre-req, eval=FALSE,echo=TRUE}
+penguins %>% 
+  dplyr::group_by(species) %>% 
+  dplyr::summarise(
+    median_body_mass = median(body_mass_g, na.rm = T)
+  )
+```
+
+---
+
+## Required Packages
+
+<br>
+
+::::{.columns}
+
+:::{.column width="50%"}
+
+Essentials^[These libraries are _needed_ to programmatically generate several rmarkdown/quarto reports]:
+
+  + rmarkdown
+  + purrr
+  + quarto
+
+:::
+
+:::{.column width="50%"}
+
+Choices Based on preference^[These depend on preferences for reading in data, visualizations, wrangling and other components]:
+  
+  + dplyr
+  + ggplot
+  + highcharter
+  + readr
+
+:::
+
+::::
+
+---
+
+## The Two Key Concepts to learn
+
+<br>
+
+::::{.columns}
+
+:::{.column width="50%"}
+
+### Creating Wrapper Function
+
+Modifying an existing function to efficiently fit with a particular use case.
+
+:::
+
+:::{.column width="50%"}
+
+### Using `purrr::map()` family functions
+
+Instead of calling the wrapper function multiple times with different inputs, use map family functions to apply the wrapper function to desired sequence of input.
+
+:::
+
+::::
+
+---
+
+## Wrapping a Function - First Key
+
+<br>
+
+Three things to keep in mind:
+
+  + The primary function to wrap
+  + Desired Output
+  + All the required inputs
+  
+---
+
+## How to wrap a function
+
+<br>
+
+This means you will essentially create your own function. [Consider this use case.]{.yellow}
+
+> I wan to show that as sample size increases the mean of sample gets closer to the mean of population.
+
+[Primary function to wrap.]{.yellow} The `rnorm()` can be used to get a random sample from a population of desired mean and standard deviation
+
+[Desired Output.]{.yellow} We want random numbers from a population of _fixed mean_ and _fixed SD_, but with __different number of observation__
+
+[Required Inputs.]{.yellow} We have three inputs. The _fixed mean_, _fixed SD_ and the number of observations.
+
+---
+
+## How to wrap a function - Primary function to wrap
+
+```{r r_norm}
+#| echo: true
+#| code-line-numbers: "1|2|4"
+
+fixed_mean <- 8
+fixed_sd <- 2
+
+vec_norm <- rnorm(n = 10,mean = fixed_mean,sd = fixed_sd) # 3 inputs
+
+vec_norm
+
+mean(vec_norm)
+
+```
+
+```{r wrap_fun}
+#| echo: true
+#| code_line-numbers: "1|2|3|5"
+
+wrap_rnorm <- function(pass_n_value){
+  rnorm(n = pass_n_value ,mean = fixed_mean,sd = fixed_sd)
+}
+
+vec_norm2 <- wrap_rnorm(pass_n_value = 20)
+
+vec_norm2
+
+mean(vec_norm2)
+```
+
+---
+
+### We have a wrapper function
+
+This function `wrap_rnorm()`, takes one value (say,n) --- the number of observations. It then randomly generates n observations from a population of _fixed mean_ and _fixed SD_.
+
+
+```{r}
+#| echo: true
+
+wrap_rnorm(pass_n_value = 10)
+
+wrap_rnorm(pass_n_value = 20)
+
+wrap_rnorm(pass_n_value = 30)
+
+```
+
+[But typing this multiple times, or copy pasting _more than twice_ is not ideal.]{.yellow}
+
+This is where [`purrr::map()`]{.pink} can help us
+
+---
+
+## Using `purrr::map()` family - The Second Key
+
+::::{.columns}
+
+:::{.column width="50%"}
+```{r}
+#| echo: true
+
+wrap_rnorm(pass_n_value = 10)
+
+wrap_rnorm(pass_n_value = 20)
+
+wrap_rnorm(pass_n_value = 30)
+
+```
+:::
+
+
+:::{.column width="50%"}
+```{r}
+#| echo: true
+
+purrr::map(.x = c(10,20,30),.f = wrap_rnorm)
+
+```
+:::
+
+::::
+
+[What if the function takes more than one argument??]{.yellow}
+
+---
+
+## The Second Key - More than two arguments
+
+::::{.columns}
+
+:::{.column width="50%"}
+```{r multiple_Args}
+#| echo: true
+
+rnorm(n = 10,mean = 100,sd = 5)
+
+rnorm(n = 5,mean = 0.654,sd = 51)
+
+rnorm(n = 15,mean = -54,sd = 25)
+
+```
+
+:::
+
+
+:::{.column width="50%"}
+
+```{r purrr_multi}
+#| echo: true
+
+purrr::pmap(.l = list(
+  n = c(10,5,15),
+  mean = c(100,0.654,-54),
+  sd = c(5,51,25)
+),.f = rnorm)
+```
+
+
+:::
+
+::::
+
+---
+
+## Ready to Report {.center}
+
+We now move on to parameterised reports.
+
+---
+
+## Parameterised Reports
+
+  + Why Parameterised reports?
+  + What are parameters?
+  + How to use these in `.rmd` files ?
+  
+Answering these three questions will provide a strong intuition about Parameterised Reports.
+
+---
+
+## Why Parameterised reports?
+
+  + .rmd creates [reproducible]{.yellow} and [easy to iterate]{.yellow} documents/reports<br>
+  + Adding parameters takes it one step forward by generating multiple reports using a single .rmd file, with different parameters.
+  + Saves time.
+  + Easy to update.
+  
+---
+
+## What are parameters?
+
+IT IS JUST A FANCY NAME FOR VALUES.
+
+I think of parameters as values that a `.rmd` assumes before it is rendered/knitted. 
+
+These are _declared_ or stated in the _yaml_ of the .rmd file.
+
+A single .rmd file can have one or more parameters
+
+```
+---
+title: My Document
+output: html_document
+params:
+  year: 2018
+  region: Europe
+  printcode: TRUE
+  date: !r Sys.Date()
+---
+```
+
+These parameters declared in yaml can then be accessed/used anywhere in the .rmd file.
+
+```
+params$year
+params$region
+```
+
+---
+
+## Knit with parameters
+
+::::{.columns}
+
+:::{.column width="50%"}
+### With knit button and changes in yaml
+
+Change params in yaml as needed and use knit button
+
+```
+---
+title: My Document
+output: html_document
+params:
+  year: 2018 # change values here and press knit button
+  region: Europe # change values here and press knit button
+  printcode: TRUE # change values here and press knit button
+  date: !r Sys.Date() # change values here and press knit button
+---
+```
+
+:::
+
+:::{.column width="50%"}
+### Using the render function
+
+```{r}
+#| eval: false
+#| echo: true
+
+rmarkdown::render(input = "MyDocument.Rmd", 
+                  params = list(
+                    year = 2017,
+                    region = "Asia" # can change all or some parameters
+))
+
+```
+
+:::
+::::
+
+---
+
+## Componentes of generating parameterised reports
+
+  + Project and Directory Structure(step 0)
+  + Decide on the contents of the reports(step 1)
+  + Complete all data prep outside .rmd (step 2)
+  + Write report structure in .rmd(step 3)
+  + Create script to generate all reports(step 4)
+  
+---
+
+## Project and Directory Structure(step 0)
+
+All the files should be contained in a `project`.
+
+I prefer this structure --- this is opinionated. Feel free to deviate from this.
+
+![Directory tree](dirtree.png){fig-align="center"}
+
+---
+
+## A Simple Example of the entire process.
+
+From here on forward, I shall complement the slides with an example I have created for generating parameterised reports with Rmarkdown and Purrr.
+
+The github repository for this can be accessed [here](https://github.com/AyushBipinPatel/ideal-chainsaw-purrr).
+
+The final output and explanation can be accessed [here](https://ayushbipinpatel.github.io/ideal-chainsaw-purrr/). This is written in a manner where it can be used as a stand alone resource.
+
+---
+
+## Deciding on the contents of the reports(step 1)
+
+I have village amenities data from the Indian census 2011, for Gujarat state.
+
+I want a report at district level. This means every district will have its own report. This is also where we decide on the parameters that we shall need.
+
+The report should have the following:
+
+  + Wikipedia search results of the district
+  + summary statistics of demography of the district
+  + visualization for geographical area and population of villages
+  + visualizations for net sown area and irrigated area of villages
+  
+---
+
+## Data prep(step 2)
+
+:::{.panel-tabset}
+
+### Description
+
+
+Create a separate R script which will clean, wrangle and make all necessary changes to raw data.(`script_clean_raw_data.R` in the `scripts folder`)
+
+Save prepared data in appropriate location.(save in the `data_prepared` folder.)
+
+
+
+### Example
+
+```{=html}
+<center><iframe src="https://github.com/AyushBipinPatel/ideal-chainsaw-purrr/blob/main/prepare_data_for_report.R" style="height:600px;width:1000px;border:none;" title="District Web Page" ></iframe></center>
+```
+
+:::
+
+---
+
+## Write the report structure in .rmd(step 3)
+
+:::{.panel-tabset}
+
+### Description
+
+
+All the reports will be generated from the structure defined by this .rmd file.
+
+Declare all parameters that were decided in this .rmd file. 
+
+It is in this file the analyses flow will be carried out. 
+
+I suggest to write this .rmd file keeping in mind some values that the params in this file can take. This makes it easier to implement the analyses flow.
+
+This .rmd file can be stored in the `scripts` folder.
+
+
+
+### Example
+
+```{=html}
+<center><iframe src="https://github.com/AyushBipinPatel/ideal-chainsaw-purrr/blob/main/district_report.rmd" style="height:600px;width:1000px;border:none;" title="District Web Page" ></iframe></center>
+```
+
+:::
+
+---
+
+## Script to generate all reports --- One ring to rule them all(step 4)
+
+:::{.panel-tabset}
+
+### Description
+
+
+Create a R script for functionally generating multiple parameterised reports. 
+
+In this script create a wrapper function around the `rmarkdown: render()` function.
+
+Once this function is created. Create a vectors/lists, one for each param, that will contain the sequence of values to be passed to a given parameter.
+
+Use the appropriate {purrr} function, if there are two or more params pmap is the way to go, apply the wrapper function over the vectors/lists of param inputs. This will generate all your reports and save those in the location specified.
+
+
+
+### Example
+
+```{=html}
+<center><iframe src="https://github.com/AyushBipinPatel/ideal-chainsaw-purrr/blob/main/generate_parameterised_reports.R" style="height:600px;width:1000px;border:none;" title="District Web Page" ></iframe></center>
+```
+
+:::
+
+---
+
+## Quarto
+
+Same process can be followed for creating parameterised reprots with .qmd files as well. 
+
+__With one major difference.__ Instead of `rmarkdown::remder()` we need to use `quarto::quarto_render()`. Note that `quarto_render` does not have the `output_dir` argument, therefore all reports from the .qmd files are generated in the same directory as the .qmd file.
+
+---
+
+## Acknowledgements and references 
+
+[Chapter 15 in Rmarkdown the definitive guide](https://bookdown.org/yihui/rmarkdown/parameterized-reports.html)
+<br><br>
+[{purrr}](https://purrr.tidyverse.org/)
+<br><br>
+[Chapter 19 in R4DS](https://r4ds.had.co.nz/functions.html)
+<br><br>
+[Tom Mock for get started with quarto](https://rstudio-conf-2022.github.io/get-started-quarto/materials/05-presentations.html#/presentations)
+<br><br>
+[Slidecraft by Emil Hvitfeldt](https://www.emilhvitfeldt.com/post/slidecraft-colors-fonts/)

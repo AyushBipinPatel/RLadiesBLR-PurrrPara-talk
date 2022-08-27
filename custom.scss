@@ -1,0 +1,40 @@
+/*-- scss:defaults --*/
+
+$theme-nearlywhite: #FFFED1;
+$theme-darkblue: #003469;
+$theme-yellow: #e2d200;
+$theme-green: #00a08a;
+$theme-pink: #e18179;
+
+
+@import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@700&display=swap');
+
+
+$body-bg: $theme-darkblue;
+$body-color: $theme-nearlywhite;
+$link-color: $theme-green;
+$presentation-heading-color: lighten($theme-nearlywhite, 15%);
+
+$font-family-sans-serif: 'Merriweather', sans-serif;
+$presentation-heading-font: 'Libre Baskerville', serif;
+
+
+$presentation-font-size-root: 35px;
+
+/*-- scss:rules --*/
+
+.yellow{
+  color: $theme-yellow;
+  font-weight: bold;
+}
+
+.pink{
+  color: $theme-pink;
+  font-weight: bold;
+}
+
+.reveal .slide a {
+  text-decoration: underline;
+}
+
